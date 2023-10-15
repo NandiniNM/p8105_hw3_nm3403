@@ -1,5 +1,5 @@
 ---
-title: "Viz Part 1"
+title: "HW 3"
 author: "Nandini M"
 date: "2023-10-14"
 output: github_document
@@ -84,5 +84,36 @@ instacart |>
     names_from = order_dow, 
     values_from = mean_hour) |>
   knitr::kable(digits = 2)
+```
+
+## Problem 3
+
+Load in data
+
+```{r}
+demo_df = 
+  read_csv("Data/nhanes_covar.csv", skip = 4)
+demo_df = janitor::clean_names(demo_df) |> 
+  mutate(
+    sex = 
+       case_match(
+         sex, 
+          1 ~ "male", 
+          2 ~ "female"
+  ))
+
+accel_df = 
+  read_csv("Data/nhanes_accel.csv")
+accel_df = janitor::clean_names(accel_df)
+```
+
+Clean and merge data
+
+```{r}
+clean_demo = 
+  filter(demo_df, age > 21) |> 
+  drop_na()
+
+both = left_join(clean_demo, accel_df, by = "seqn")
 ```
 
