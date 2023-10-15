@@ -96,11 +96,19 @@ demo_df =
 demo_df = janitor::clean_names(demo_df) |> 
   mutate(
     sex = 
-       case_match(
-         sex, 
-          1 ~ "male", 
-          2 ~ "female"
-  ))
+      case_match(
+        sex, 
+         1 ~ "male", 
+         2 ~ "female"
+        ),
+    education = 
+      case_match(
+        education,
+         1 ~ "Less than hs",
+         2 ~ "Hs equiv",
+         3 ~ "More than hs"
+       )
+  )
 
 accel_df = 
   read_csv("Data/nhanes_accel.csv")
@@ -117,3 +125,62 @@ clean_demo =
 both = left_join(clean_demo, accel_df, by = "seqn")
 ```
 
+```{r}
+both |> 
+  group_by(education) |> 
+  count(sex) |> 
+  knitr::kable()
+
+ggplot(both, aes(x=education, fill=sex)) +
+  geom_histogram(stat = "count",position = "dodge") +
+  labs(
+    title = "Histogram for distribution of Sex across Education level",
+    x = "Education level",
+    y = "Frequency"
+  )
+```
+
+Most of the data appears to come from men and women with more than a high school education. There are `r filter(both, sex == "male", education == "More than hs") |> nrow()` males and `r filter(both, sex == "female", education == "More than hs") |> nrow()` females with more than a high school education in the dataset. Individuals in the Hs equiv and Less than hs categories appear to be underrepresented. 
+
+```{r}
+total = 
+  mutate(both, 
+         act_total = rowSums(across(c(min1,min1440)))) |> 
+  select(seqn, age, sex, education, act_total)
+
+gg_scatter = 
+  total |> 
+  ggplot(aes(x = age, y = act_total, color = sex)) +
+    labs(title = "Scatterplot for Total Activity over the Day by Education Level"
+  ) +
+  geom_point() +
+  geom_smooth() +
+  facet_grid(. ~ education) 
+
+gg_scatter
+```
+
+Across all three groups, there appears to be a general decline in activity as age increases. Those who are around 20 years old seem to have higher total activity time than those who are around 80 years old. The only instance where this is not true is for females designated within the less than high school category. Also, there seems to be a spike in activity for those in their 50s and 60s. However, this is not true for males designated in the Hs equiv category - there was only a decrease in the trendline, and for males designated within the More than hs category - the spike occurred around the 30 years age range. 
+
+```{r}
+all_day = 
+  both |> 
+  pivot_longer(
+    min1:min1440,
+    names_to = "minute",
+    values_to = "activity"
+  )
+
+gg_scatter2 = 
+  all_day |> 
+  ggplot(aes(x = minute, y = activity, color = sex)) +
+  labs(title = "24Hour Activity Time Course by Education Level"
+  ) +
+  geom_point() +
+  geom_smooth() +
+  facet_grid(. ~ education) 
+
+gg_scatter2
+```
+
+The plots looks very similar between those in the Hs equiv and Less than hs categories. Both start around 25-30 activity level at the beginning of the day and then there's is a dip. Both groups park around 45-50 before slightly decreasing at the end of the day. For those in the More than hs category, the activity level is higher at the start of the day which is around 35-40. There is a similar dip which then rises up again and peaks around 55-60 before decreasing towards the end of the day. Looking at these plots side by side, it appears as though the individuals in the More than hs category are overall more active throughout the day compares to the other two groups. 
